@@ -375,6 +375,11 @@ class Handler(BaseHTTPRequestHandler):
 
                 elif mtype == "cancel" and chat:
                     chat.cancel()
+                elif mtype == "confirm_answer" and chat:
+                    ask_id = str(msg.get("ask_id") or msg.get("id") or "")
+                    answer = str(msg.get("answer") or "").strip()[:400]
+                    ok = chat.answer_ask(ask_id, answer)
+                    send({"type": "ask_answered", "ask_id": ask_id, "ok": bool(ok)})
                 elif mtype == "workdir" and chat:
                     path = str(msg.get("path") or "").strip()
                     sub = str(msg.get("sub") or "").strip()

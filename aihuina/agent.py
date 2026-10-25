@@ -16,6 +16,9 @@ from .parsing import (
     extract_actions,
     extract_sendfiles,
     history_text,
+    parse_ask,
+    parse_checklist,
+    parse_followups,
     strip_reasoning,
 )
 from .prompts import build_system_prompt
@@ -42,6 +45,29 @@ class Agent:
         self._touched = set()
         self._pending_files = {}
         self._generation_speed_tps = 0.0
+        self._ask_waiters: dict = {}
+
+    def answer_ask(self, ask_id: str, answer: str) -> bool:
+        """Пользователь ответил на <ask>-вопрос модели (или отклонил его)."""
+        waiter = self._ask_waiters.get(str(ask_id or ""))
+        if not waiter:
+            return False
+        waiter["answer"] = str(answer or "")
+        waiter["ev"].set()
+        return True
+
+    def _image_input_supported(self) -> bool:
+        """Кешированный детект поддержки входных изображений текущей моделью."""
+        try:
+            from .settings import detect_image_input_support
+            cached = getattr(self, "_img_support", None)
+            if cached is None or getattr(self, "_img_support_model", "") != self.model_name:
+                cached = bool(detect_image_input_support())
+                self._img_support = cached
+                self._img_support_model = self.model_name
+            return cached
+        except Exception:
+            return False
 
     def set_model(self, model_name):
         self.model_name = str(model_name or config.MODEL_NAME)
@@ -150,7 +176,7 @@ class Agent:
         if any(w in low for w in self._EDIT_WORDS):
             return False
 
-        if re.search(r"(как|в виде|в формате)", low) and self._FNAME_RE.search(low):
+        if re.search("(как|в виде|в формате)", low) and self._FNAME_RE.search(low):
             return False
         has_verb = any(v in low for v in self._SEND_VERBS)
         has_obj = any(o in low for o in self._SEND_OBJ) or bool(self._FNAME_RE.search(low))
@@ -267,6 +293,22 @@ class Agent:
                 self._emit(q, "thought", text)
             elif kind == "status":
                 self._emit(q, "status", text)
+            elif kind == "checklist":
+                items = parse_checklist("<checklist>" + str(text or "") + "</checklist>")
+                if items:
+                    state["had_text"] = True
+                    self._emit(q, "checklist", {"items": items})
+            elif kind == "ask":
+                ask_data = parse_ask("<ask>" + str(text or "") + "</ask>")
+                if ask_data:
+                    ask_data["id"] = f"ask_{int(time.time() * 1000)}"
+                    state["ask"] = ask_data
+                    self._emit(q, "ask", ask_data)
+            elif kind == "followups":
+                fu = parse_followups("<followups>" + str(text or "") + "</followups>")
+                if fu:
+                    state["followups"] = fu
+                    self._emit(q, "followups", {"options": fu})
 
 
     def run_turn(self, user_text: str, q, max_iterations: int = MAX_ITERATIONS,
@@ -357,7 +399,7 @@ class Agent:
                             full_text += piece
                             elapsed = max(0.05, time.monotonic() - stream_started)
                             self._generation_speed_tps = (len(full_text) / 4.0) / elapsed
-                            set_runtime_capabilities(self._generation_speed_tps, False)
+                            set_runtime_capabilities(self._generation_speed_tps, self._image_input_supported())
                             self._dispatch(q, splitter.feed(piece), state)
                     finally:
                         self._close_stream()
@@ -422,6 +464,33 @@ class Agent:
                     return
 
                 self._dispatch(q, splitter.flush(), state)
+
+                # <ask>: модель очень неуверена — ждём ответ пользователя до 30 секунд.
+                ask_data = state.get("ask")
+                if ask_data and not self.cancel_flag.is_set():
+                    qid = ask_data["id"]
+                    waiter = {"ev": threading.Event(), "answer": None}
+                    self._ask_waiters[qid] = waiter
+                    try:
+                        got = waiter["ev"].wait(30.0)
+                    finally:
+                        self._ask_waiters.pop(qid, None)
+                    answer = (waiter["answer"] or "").strip() if got else ""
+                    if answer:
+                        ask_note = (
+                            f"СИСТЕМА: пользователь ответил на твой вопрос «{ask_data['title']}» — "
+                            f"«{answer}». Учти этот ответ и продолжай задачу."
+                        )
+                    else:
+                        ask_note = (
+                            f"СИСТЕМА: пользователь не ответил на вопрос «{ask_data['title']}» за 30 секунд "
+                            "(или отклонил его). Самостоятельно выбери разумный вариант, коротко поясни выбор "
+                            "и продолжай выполнение задачи. Больше не жди ответа."
+                        )
+                    with self.lock:
+                        self.messages.append({"role": "user", "content": ask_note})
+                    continue
+
                 self._emit(q, "assistant_end")
 
                 if self.cancel_flag.is_set():
@@ -436,6 +505,11 @@ class Agent:
                 for p in extract_sendfiles(visible):
                     self._emit_file(q, p)
 
+                # Подсказки следующих действий: свои из <followups> или типовые (только в финале хода).
+                if not extract_actions(full_text):
+                    fu_list = state.get("followups") or parse_followups(visible)
+                    if fu_list:
+                        self._emit(q, "followups", {"options": list(fu_list)[:4]})
 
                 tool_call = extract_actions(full_text) or extract_actions(visible)
 
@@ -470,7 +544,7 @@ class Agent:
                             self._emit(q, "status", f"Выполняю: {label}"[:80])
                         except Exception:
                             pass
-                        set_runtime_capabilities(self._generation_speed_tps, False)
+                        set_runtime_capabilities(self._generation_speed_tps, self._image_input_supported())
                         meta = perform_action(kind, payload)
                         self._emit(q, "log", "tool_call", {
                             "name": meta.get("log_name") or kind,
@@ -663,6 +737,12 @@ def _event_to_json(ev):
         return {"type": "context", "info": ev[1]}
     if kind == "tool_ui":
         return {"type": "tool_ui", "info": ev[1]}
+    if kind == "checklist":
+        return {"type": "checklist", "items": ev[1]["items"]}
+    if kind == "ask":
+        return {"type": "ask", "info": ev[1]}
+    if kind == "followups":
+        return {"type": "followups", "options": ev[1]["options"]}
     if kind == "user":
         silent = bool(ev[4]) if len(ev) > 4 else False
         return {"type": "user", "text": ev[1], "files": ev[2], "think": ev[3], "silent": silent}
