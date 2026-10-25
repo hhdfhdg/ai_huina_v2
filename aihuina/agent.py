@@ -46,6 +46,9 @@ class Agent:
         self._pending_files = {}
         self._generation_speed_tps = 0.0
         self._ask_waiters: dict = {}
+        # Защита от повторов <ask>: заголовок уже заданного вопроса -> полученный ответ.
+        self._asked: dict = {}
+        self._ask_count = 0
 
     def answer_ask(self, ask_id: str, answer: str) -> bool:
         """Пользователь ответил на <ask>-вопрос модели (или отклонил его)."""
@@ -317,6 +320,9 @@ class Agent:
         self.cancel_flag.clear()
         self._sent = set()
         self._touched = set()
+        # Защита от «зацикливания» <ask>: один и тот же вопрос не показывается дважды за ход.
+        self._asked: dict = {}   # нормализованный заголовок -> ответ пользователя
+        self._ask_count = 0
 
 
         if self._is_send_request(anchor or user_text):
@@ -468,23 +474,49 @@ class Agent:
                 # <ask>: модель очень неуверена — ждём ответ пользователя до 30 секунд.
                 ask_data = state.get("ask")
                 if ask_data and not self.cancel_flag.is_set():
+                    norm_title = re.sub(r"\W+", " ", str(ask_data.get("title") or "").lower()).strip()
+                    prev_answer = str(self._asked.get(norm_title) or "")
+                    answered_before = bool(norm_title) and norm_title in self._asked
+                    if answered_before or self._ask_count >= 2:
+                        # Такой вопрос уже задавался в этом ходе (или лимит вопросов исчерпан) —
+                        # повторно карточку НЕ показываем, модель обязана решить сама.
+                        if answered_before:
+                            ask_note = (
+                                f"СИСТЕМА: на вопрос «{ask_data['title']}» пользователь УЖЕ отвечал: "
+                                f"«{prev_answer or 'ответ не дан'}». Повторно задавать этот вопрос запрещено. "
+                                "Используй полученный ответ и продолжай выполнение задачи без новых вопросов."
+                            )
+                        else:
+                            ask_note = (
+                                "СИСТЕМА: лимит уточняющих вопросов за ход исчерпан. "
+                                "Больше не спрашивай — самостоятельно выбери разумный вариант, "
+                                "коротко поясни выбор и выполни задачу."
+                            )
+                        with self.lock:
+                            self.messages.append({"role": "user", "content": ask_note})
+                        continue
+
                     qid = ask_data["id"]
                     waiter = {"ev": threading.Event(), "answer": None}
                     self._ask_waiters[qid] = waiter
+                    self._ask_count += 1
                     try:
                         got = waiter["ev"].wait(30.0)
                     finally:
                         self._ask_waiters.pop(qid, None)
                     answer = (waiter["answer"] or "").strip() if got else ""
+                    self._asked[norm_title] = answer
                     if answer:
                         ask_note = (
                             f"СИСТЕМА: пользователь ответил на твой вопрос «{ask_data['title']}» — "
-                            f"«{answer}». Учти этот ответ и продолжай задачу."
+                            f"«{answer}». Это окончательный ответ: повторно задавать этот или похожий вопрос "
+                            "ЗАПРЕЩЕНО. Учти ответ и продолжай задачу; если данных достаточно — сразу выполни действие."
                         )
                     else:
                         ask_note = (
                             f"СИСТЕМА: пользователь не ответил на вопрос «{ask_data['title']}» за 30 секунд "
-                            "(или отклонил его). Самостоятельно выбери разумный вариант, коротко поясни выбор "
+                            "(или отклонил его). Повторно задать этот вопрос нельзя. "
+                            "Самостоятельно выбери разумный вариант, коротко поясни выбор "
                             "и продолжай выполнение задачи. Больше не жди ответа."
                         )
                     with self.lock:
@@ -531,9 +563,24 @@ class Agent:
                     if len(tool_call) > 12:
                         note = f"\n[ОШИБКА] За ход выполнены только первые 12 действий из {len(tool_call)}."
                     results = []
+                    seen_calls = set()
                     for kind, payload in batch:
                         if self.cancel_flag.is_set():
                             break
+
+                        # Защита от багов на высоких уровнях усилия: модель иногда
+                        # повторяет один и тот же вызов инструмента несколько раз подряд.
+                        try:
+                            sig = json.dumps([kind, payload], sort_keys=True, ensure_ascii=False, default=str)[:4000]
+                        except Exception:
+                            sig = f"{kind}:{str(payload)[:4000]}"
+                        if sig in seen_calls:
+                            results.append(
+                                "[ПРОПУЩЕНО] Такой же вызов уже выполнялся в этом ходе — "
+                                "не повторяй одно и то же действие. Делай следующий шаг или дай финальный ответ."
+                            )
+                            continue
+                        seen_calls.add(sig)
 
                         try:
                             label = kind
