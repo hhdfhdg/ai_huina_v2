@@ -1,0 +1,1 @@
+{"provider_api_keys": {}, "provider": "lmstudio", "api_url": "http://127.0.0.1:1234/v1/chat/completions", "model": "qwen3.5-4b-super-coder", "provider_urls": {"openai": "https://api.openai.com/v1", "lmstudio": "http://127.0.0.1:1234/v1/chat/completions"}}
