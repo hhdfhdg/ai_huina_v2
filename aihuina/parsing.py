@@ -14,6 +14,9 @@ _TAG_PAIRS = [
     ("<thinking_out_loud>", "</thinking_out_loud>", "thought"),
     ("<status>",    "</status>",    "status"),
     ("<tool>",      "</tool>",      "tool"),
+    ("<checklist>", "</checklist>", "checklist"),
+    ("<ask>",       "</ask>",       "ask"),
+    ("<followups>", "</followups>", "followups"),
 ]
 _OPEN_TAGS  = {t[0]: t[2] for t in _TAG_PAIRS}
 _CLOSE_TAGS = {t[1]: t[2] for t in _TAG_PAIRS}
@@ -49,6 +52,7 @@ class StreamSplitter:
         self.buf = ""
         self.mode = "assistant"
         self.tool_buf = self.status_buf = self.thought_buf = ""
+        self.checklist_buf = self.ask_buf = self.followups_buf = ""
         self.reasoning_open = False
         self.write_buf = ""
         self.write_path = ""
@@ -116,6 +120,12 @@ class StreamSplitter:
                     self.status_buf = ""
                 elif m == "thought":
                     self.thought_buf = ""
+                elif m == "checklist":
+                    self.checklist_buf = ""
+                elif m == "ask":
+                    self.ask_buf = ""
+                elif m == "followups":
+                    self.followups_buf = ""
                 elif m == "reasoning":
                     self.reasoning_open = True
                 self.mode = m
@@ -135,6 +145,21 @@ class StreamSplitter:
                     if s:
                         events.append(("thought", s))
                     self.thought_buf = ""
+                elif m == "checklist" and self.mode == "checklist":
+                    s = self.checklist_buf.strip()
+                    if s:
+                        events.append(("checklist", s))
+                    self.checklist_buf = ""
+                elif m == "ask" and self.mode == "ask":
+                    s = self.ask_buf.strip()
+                    if s:
+                        events.append(("ask", s))
+                    self.ask_buf = ""
+                elif m == "followups" and self.mode == "followups":
+                    s = self.followups_buf.strip()
+                    if s:
+                        events.append(("followups", s))
+                    self.followups_buf = ""
                 elif m == "reasoning" and self.mode == "reasoning":
                     if self.reasoning_open:
                         events.append(("reasoning_end", ""))
@@ -161,10 +186,17 @@ class StreamSplitter:
             events.append(("status", self.status_buf.strip()))
         elif self.mode == "thought" and self.thought_buf.strip():
             events.append(("thought", self.thought_buf.strip()))
+        elif self.mode == "checklist" and self.checklist_buf.strip():
+            events.append(("checklist", self.checklist_buf.strip()))
+        elif self.mode == "ask" and self.ask_buf.strip():
+            events.append(("ask", self.ask_buf.strip()))
+        elif self.mode == "followups" and self.followups_buf.strip():
+            events.append(("followups", self.followups_buf.strip()))
         if self.reasoning_open:
             events.append(("reasoning_end", ""))
             self.reasoning_open = False
         self.status_buf = self.thought_buf = ""
+        self.checklist_buf = self.ask_buf = self.followups_buf = ""
         return events
 
     def _write_open_valid(self, m):
@@ -231,6 +263,9 @@ class StreamSplitter:
         if mode == "tool":        self.tool_buf += text
         elif mode == "status":    self.status_buf += text
         elif mode == "thought":   self.thought_buf += text
+        elif mode == "checklist": self.checklist_buf += text
+        elif mode == "ask":       self.ask_buf += text
+        elif mode == "followups": self.followups_buf += text
         elif mode == "write":     self.write_buf += text
         elif mode in _BLOCK_CLOSE: self.block_buf += text
         elif mode == "reasoning": events.append(("reasoning_delta", text))
@@ -244,6 +279,73 @@ EDIT_RE     = re.compile(r"<edit\b([^>]*)>(.*?)</edit>", re.DOTALL | re.IGNORECA
 APPEND_RE   = re.compile(r"<append\b([^>]*)>(.*?)</append>", re.DOTALL | re.IGNORECASE)
 INSERT_RE   = re.compile(r"<insert\b([^>]*)>(.*?)</insert>", re.DOTALL | re.IGNORECASE)
 SENDFILE_RE = re.compile(r"<sendfile\s+path=[\"']([^\"']+)[\"']\s*/?>", re.IGNORECASE)
+CHECKLIST_RE = re.compile(r"<checklist>(.*?)</checklist>", re.DOTALL | re.IGNORECASE)
+ASK_RE = re.compile(r"<ask>\s*(\{.*?\})\s*</ask>", re.DOTALL | re.IGNORECASE)
+FOLLOWUPS_RE = re.compile(r"<followups>\s*(\[.*?\])\s*</followups>", re.DOTALL | re.IGNORECASE)
+
+
+def parse_checklist(text: str):
+    """Список задач модели: [{"text":…, "done": bool}, …] из <checklist>[x]/[ ]…</checklist>."""
+    m = CHECKLIST_RE.search(text or "")
+    if not m:
+        return []
+    items = []
+    for line in m.group(1).splitlines():
+        s = line.strip().lstrip("-*• ").strip()
+        if not s:
+            continue
+        low = s.lower()
+        if low.startswith("[x]") or low.startswith("(x)") or low.startswith("[✓]"):
+            items.append({"text": s[3:].strip(), "done": True})
+        elif low.startswith("[ ]") or low.startswith("( )"):
+            items.append({"text": s[3:].strip(), "done": False})
+        else:
+            items.append({"text": s, "done": False})
+    return items[:20]
+
+
+def parse_ask(text: str):
+    """Вопрос модели к пользователю из <ask>{json}</ask>. None, если блока нет или он невалиден."""
+    m = ASK_RE.search(text or "")
+    if not m:
+        return None
+    try:
+        data = json.loads(m.group(1))
+    except json.JSONDecodeError:
+        try:
+            data = _loose_json(m.group(1))
+        except Exception:
+            data = None
+    if not isinstance(data, dict):
+        return None
+    title = str(data.get("title") or "").strip()
+    raw_opts = data.get("options")
+    opts = [str(o).strip() for o in raw_opts if str(o).strip()] if isinstance(raw_opts, list) else []
+    opts = opts[:5]
+    if not title or len(opts) < 2:
+        return None
+    return {"title": title[:220], "options": opts}
+
+
+def parse_followups(text: str):
+    """До 4 вариантов следующих действий из <followups>[...]</followups>; fallback — типовые подсказки."""
+    m = FOLLOWUPS_RE.search(text or "")
+    if m:
+        try:
+            data = json.loads(m.group(1))
+        except json.JSONDecodeError:
+            data = _loose_json(m.group(1))
+        if isinstance(data, list):
+            out = [str(x).strip()[:160] for x in data if str(x).strip()][:4]
+            if out:
+                return out
+    return [
+        "Улучши результат и проверь крайние случаи",
+        "Объясни ключевые решения кратко",
+        "Добавь тесты и проверь результат",
+        "Предложи следующий полезный шаг",
+    ]
+
 
 _REASON_TAGS = (
     "reasoning",
@@ -252,6 +354,9 @@ _REASON_TAGS = (
     "analysis",
     "reflection",
     "thought",
+    "checklist",
+    "ask",
+    "followups",
 )
 _REASON_NAMES = "|".join(map(re.escape, _REASON_TAGS))
 _REASON_RE = re.compile(

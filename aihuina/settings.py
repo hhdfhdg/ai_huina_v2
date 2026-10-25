@@ -109,4 +109,34 @@ DEFAULT_WORKDIR = _initial_workdir()
 _apply_provider_settings()
 
 
-_apply_provider_settings()
+def detect_image_input_support():
+    """Best-effort проверка: понимает ли текущая модель входные изображения.
+
+    Возвращает True только при явных признаках vision-модели (имя модели или
+    provider-метаданные). По умолчанию False — скриншоты для анализа запрещены.
+    """
+    try:
+        from . import config as _cfg
+        from .providers import _available_models
+        name = str(_cfg.MODEL_NAME or "").lower()
+        hints = ("vision", "vl", "-vr", "multimodal", "gpt-4o", "gemini", "claude", "qwen-vl", "llava")
+        if any(h in name for h in hints):
+            return True
+        try:
+            models = _available_models()
+        except Exception:
+            models = []
+        for m in models:
+            if not isinstance(m, dict):
+                continue
+            key = str(m.get("key") or m.get("name") or "").lower()
+            if key and (key == name or name in key or key in name):
+                meta = " ".join(str(v) for v in (m.get("details") or {}).values()).lower() if isinstance(m.get("details"), dict) else ""
+                caps = m.get("capabilities") or m.get("supports") or []
+                if isinstance(caps, (list, tuple)) and any("vision" in str(c).lower() or "image" in str(c).lower() for c in caps):
+                    return True
+                if "vision" in meta or "image" in meta:
+                    return True
+    except Exception:
+        pass
+    return False

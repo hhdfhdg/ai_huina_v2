@@ -53,6 +53,7 @@ class Chat:
 
         self.context_info = {"used": 0, "limit": _model_context_size(self.model_name), "percent": 0}
         self.effort = "normal"
+        self.pending_ask_id = None
 
     def info(self):
         return {"id": self.id, "title": self.title, "workdir": str(self.workdir),
@@ -140,6 +141,12 @@ class Chat:
             if finished:
                 self.running = False
                 self.updated = time.time()
+
+            t = obj.get("type")
+            if t == "ask":
+                self.pending_ask_id = str((obj.get("info") or {}).get("id") or "") or None
+            elif t in ("done", "user"):
+                self.pending_ask_id = None
 
             if obj.get("type") == "context" and isinstance(obj.get("info"), dict):
                 self.context_info = obj["info"]
@@ -367,6 +374,17 @@ class Chat:
         self.worker = threading.Thread(target=run, daemon=True)
         self.worker.start()
         return True
+
+    def answer_ask(self, ask_id: str, answer: str) -> bool:
+        """Ответ пользователя на <ask>-вопрос модели (пустая строка = отклонить)."""
+        try:
+            ok = self.agent.answer_ask(ask_id, answer)
+            if ok:
+                with self.lock:
+                    self.pending_ask_id = None
+            return ok
+        except Exception:
+            return False
 
     def cancel(self):
         self.agent.cancel()

@@ -620,6 +620,42 @@ textarea#input::placeholder{color:var(--dim)}
 @media(max-width:980px){.browser-panel{width:44vw;min-width:260px;flex-basis:44vw}}
 @media(max-width:680px){.app.browser-open{position:relative}.browser-panel{position:absolute;z-index:20;top:8px;right:8px;bottom:8px;width:calc(100% - 16px);min-width:0;max-width:520px;box-shadow:0 24px 80px rgba(0,0,0,.55)}.browser-note{font-size:9px}.browser-label{display:none}}
 
+/* Checklist card (neon glass) */
+.cl-card{margin:10px 0 4px;border:1px solid rgba(255,255,255,.06);border-radius:16px;padding:11px 13px;background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.015));box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 12px 32px rgba(0,0,0,.35);backdrop-filter:blur(14px);animation:followupIn .28s cubic-bezier(.25,.8,.25,1)}
+.cl-head{display:flex;align-items:center;gap:8px;font:600 11.5px/1.3 Inter,system-ui,sans-serif;color:#8e8e93;text-transform:uppercase;letter-spacing:.06em;margin-bottom:7px}
+.cl-head .cl-prog{margin-left:auto;color:var(--accent-2);font-weight:600;letter-spacing:0;text-transform:none}
+.cl-item{display:flex;align-items:flex-start;gap:8px;padding:3px 0;font-size:12.5px;line-height:1.45;color:#cfd2de}
+.cl-box{flex:none;width:15px;height:15px;margin-top:2px;border:1.5px solid rgba(255,255,255,.16);border-radius:5px;display:grid;place-items:center;font-size:10px;color:transparent;background:rgba(255,255,255,.03);transition:all .22s cubic-bezier(.25,.8,.25,1)}
+.cl-item.done .cl-box{color:#fff;border-color:rgba(52,211,153,.55);background:linear-gradient(180deg,#2fd48a,#17a06b);box-shadow:0 0 12px rgba(52,211,153,.35),inset 0 1px 0 rgba(255,255,255,.35)}
+.cl-item.done{color:#8e8e93;text-decoration:line-through;text-decoration-color:rgba(142,142,147,.5)}
+.cl-item::before{content:'';display:none}
+
+/* Ask card (question to user, neon glass + skeuo buttons) */
+.ask-card{position:relative;margin:12px 0 6px;border:1px solid rgba(139,123,255,.28);border-radius:18px;padding:14px 15px 13px;background:linear-gradient(180deg,rgba(139,123,255,.10),rgba(139,123,255,.03) 45%,rgba(255,255,255,.015));box-shadow:inset 0 1px 0 rgba(255,255,255,.09),0 18px 44px rgba(0,0,0,.4),0 0 26px rgba(139,123,255,.14);backdrop-filter:blur(18px);max-width:520px;animation:askIn .3s cubic-bezier(.25,.8,.25,1)}
+.ask-title{font:600 13.5px/1.4 Inter,system-ui,sans-serif;color:#fff;margin-bottom:10px;padding-right:52px}
+.ask-timer{position:absolute;top:12px;right:13px;min-width:34px;text-align:center;font:600 11px/1.5 var(--mono);color:var(--accent-2);background:rgba(139,123,255,.12);border:1px solid rgba(139,123,255,.25);border-radius:9px;padding:3px 7px;box-shadow:0 0 14px rgba(139,123,255,.15),inset 0 1px 0 rgba(255,255,255,.08)}
+.ask-timer.low{color:#fda4af;border-color:rgba(251,113,133,.35);background:rgba(251,113,133,.1);box-shadow:0 0 14px rgba(251,113,133,.16)}
+.ask-opts{display:flex;flex-direction:column;gap:7px;margin-bottom:9px}
+.ask-opt{text-align:left;border:1px solid rgba(255,255,255,.07);border-radius:13px;padding:9px 12px;font:500 12.5px/1.4 Inter,system-ui,sans-serif;color:#d9dbe6;cursor:pointer;background:linear-gradient(180deg,rgba(255,255,255,.075),rgba(255,255,255,.02) 55%,rgba(255,255,255,.012));box-shadow:inset 0 1px 0 rgba(255,255,255,.09),0 6px 18px rgba(0,0,0,.28);transition:all .22s cubic-bezier(.25,.8,.25,1)}
+.ask-opt:hover{color:#fff;border-color:rgba(167,139,250,.4);box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 0 22px rgba(139,92,246,.16),0 6px 18px rgba(0,0,0,.3);transform:translateY(-1px)}
+.ask-opt.sel{color:#fff;border-color:var(--accent);background:linear-gradient(180deg,rgba(139,123,255,.3),rgba(139,123,255,.12));box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 0 24px rgba(139,123,255,.3)}
+.ask-other-row{display:flex;gap:7px;margin-bottom:11px}
+.ask-other{flex:1;min-width:0;height:34px;padding:0 11px;border:1px solid rgba(255,255,255,.07);border-radius:11px;background:rgba(8,9,13,.55);color:var(--fg);font:inherit;font-size:12px;box-shadow:inset 0 2px 6px rgba(0,0,0,.35);transition:all .22s cubic-bezier(.25,.8,.25,1)}
+.ask-other:focus{outline:none;border-color:var(--accent);box-shadow:inset 0 2px 6px rgba(0,0,0,.35),0 0 0 3px rgba(139,123,255,.16)}
+.ask-actions{display:flex;gap:8px;justify-content:flex-end}
+.ask-btn{border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:8px 16px;font:600 12px/1.3 Inter,system-ui,sans-serif;cursor:pointer;transition:all .22s cubic-bezier(.25,.8,.25,1)}
+.ask-btn.reject{color:#a3aabd;background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.015));box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 5px 14px rgba(0,0,0,.3)}
+.ask-btn.reject:hover{color:#e6e7ef;border-color:rgba(255,255,255,.16)}
+.ask-btn.accept{color:#fff;border-color:rgba(139,123,255,.5);background:linear-gradient(180deg,#9d8dff,#6d5ce7 60%,#5a48d6);box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 6px 20px rgba(109,92,231,.4),0 0 24px rgba(139,123,255,.25)}
+.ask-btn.accept:hover{filter:brightness(1.08);box-shadow:inset 0 1px 0 rgba(255,255,255,.4),0 8px 26px rgba(109,92,231,.5),0 0 30px rgba(139,123,255,.32);transform:translateY(-1px)}
+.ask-btn.accept:active,.ask-btn.reject:active{transform:translateY(1px)}
+.ask-btn:disabled{opacity:.45;cursor:default;transform:none;box-shadow:none;filter:none}
+.ask-resolved{opacity:.75;border-color:rgba(255,255,255,.06);box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 10px 26px rgba(0,0,0,.3)}
+.ask-resolved .ask-opts,.ask-resolved .ask-other-row,.ask-resolved .ask-actions,.ask-resolved .ask-timer{display:none}
+.ask-done-note{display:none;font-size:12px;color:#8e8e93}
+.ask-resolved .ask-done-note{display:block}
+@keyframes askIn{from{opacity:0;transform:translateY(8px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
+
 </style>
 
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
@@ -1326,12 +1362,13 @@ function onEvent(e){
       if(!replaying && !bubble){ startBot(); scrollDown(true); }
     } else {
       addUser(e.text,e.files);
+      pendingFollowups=null;
       bubble=null; seg=null; logBox=null;
       if(!replaying){ startBot(); scrollDown(true); }
     }
     return;
   }
-  const needsBot=['assistant_delta','reasoning_delta','thought','status','file','diff','log','error','tool_ui'].includes(e.type);
+  const needsBot=['assistant_delta','reasoning_delta','thought','status','file','diff','log','error','tool_ui','checklist','ask'].includes(e.type);
   if(needsBot && !bubble) startBot();
   switch(e.type){
     case 'assistant_delta':
@@ -1422,21 +1459,100 @@ function onEvent(e){
     case 'context':
       if(e.info) setContextUI(e.info);
       break;
+    case 'checklist': renderChecklist(e.items||[]); break;
+    case 'ask': renderAskCard(e.info||{}); break;
+    case 'followups': pendingFollowups=(e.options||[]).slice(0,4); break;
     case 'done': finishTurn(); break;
   }
 }
+let pendingFollowups=null;
 function addFollowupSuggestions(bubbleEl){
   if(!bubbleEl || bubbleEl.querySelector('.followup-suggestions')) return;
-  const host=bubbleEl;
-  const prompts=[
+  const prompts=(pendingFollowups&&pendingFollowups.length?pendingFollowups:[
     'Улучши результат и проверь крайние случаи',
     'Объясни ключевые решения кратко',
     'Добавь тесты и проверь результат',
     'Предложи следующий полезный шаг'
-  ];
+  ]).slice(0,4);
+  pendingFollowups=null;
   const wrap=document.createElement('div'); wrap.className='followup-suggestions';
   prompts.forEach(label=>{const b=document.createElement('button');b.type='button';b.className='followup-chip';b.textContent=label;b.addEventListener('click',()=>{input.value=label;input.dispatchEvent(new Event('input',{bubbles:true}));send();});wrap.appendChild(b);});
-  host.appendChild(wrap);
+  bubbleEl.appendChild(wrap);
+}
+function renderChecklist(items){
+  if(!items||!items.length) return;
+  let host=bubble||(activeBotBubble&&activeBotBubble.isConnected?activeBotBubble:null);
+  if(!host) return;
+  const sig=items.map(i=>(i.done?'x':' ')+i.text).join('|');
+  let card=host.querySelector(':scope > .cl-card');
+  if(card && card.dataset.sig===sig) return;
+  if(card) card.remove();
+  card=document.createElement('div'); card.className='cl-card'; card.dataset.sig=sig;
+  const doneN=items.filter(i=>i.done).length;
+  const head=document.createElement('div'); head.className='cl-head';
+  head.innerHTML='<span>Чек-лист модели</span><span class="cl-prog"></span>';
+  head.querySelector('.cl-prog').textContent=doneN+' / '+items.length;
+  card.appendChild(head);
+  items.forEach(it=>{
+    const row=document.createElement('div'); row.className='cl-item'+(it.done?' done':'');
+    row.innerHTML='<span class="cl-box">✓</span><span class="cl-txt"></span>';
+    row.querySelector('.cl-txt').textContent=it.text;
+    card.appendChild(row);
+  });
+  host.appendChild(card);
+}
+function closeAskLocally(askId,note){
+  document.querySelectorAll('.ask-card[data-ask-id="'+String(askId).replace(/[^A-Za-z0-9_]/g,'')+'"]').forEach(c=>{
+    c.classList.add('ask-resolved');
+    const n=c.querySelector('.ask-done-note'); if(n) n.textContent=note||'Вопрос закрыт';
+  });
+}
+function renderAskCard(info){
+  const id=String(info.id||''); if(!id||document.querySelector('.ask-card[data-ask-id="'+id.replace(/[^A-Za-z0-9_]/g,'')+'"]')) return;
+  const opts=(info.options||[]).slice(0,5);
+  const host=bubble||(activeBotBubble&&activeBotBubble.isConnected?activeBotBubble:null)||col;
+  const card=document.createElement('div'); card.className='ask-card'; card.dataset.askId=id;
+  const title=document.createElement('div'); title.className='ask-title'; title.textContent=info.title||'Уточни, пожалуйста';
+  const timer=document.createElement('div'); timer.className='ask-timer'; timer.textContent='30';
+  const box=document.createElement('div'); box.className='ask-opts';
+  let chosen=null;
+  opts.forEach(o=>{
+    const b=document.createElement('button'); b.type='button'; b.className='ask-opt'; b.textContent=o;
+    b.addEventListener('click',()=>{card.querySelectorAll('.ask-opt').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');chosen=o;otherInput.value='';acceptBtn.disabled=false;});
+    box.appendChild(b);
+  });
+  const otherRow=document.createElement('div'); otherRow.className='ask-other-row';
+  const otherInput=document.createElement('input'); otherInput.className='ask-other'; otherInput.placeholder='Другое — впиши свой вариант…'; otherInput.maxLength=400;
+  otherInput.addEventListener('input',()=>{ if(otherInput.value.trim()){card.querySelectorAll('.ask-opt').forEach(x=>x.classList.remove('sel'));chosen=null;} acceptBtn.disabled=!otherInput.value.trim()&&!chosen; });
+  otherInput.addEventListener('keydown',ev=>{if(ev.key==='Enter'){ev.preventDefault();if(!acceptBtn.disabled)doAccept();}});
+  otherRow.appendChild(otherInput);
+  const actions=document.createElement('div'); actions.className='ask-actions';
+  const rejectBtn=document.createElement('button'); rejectBtn.type='button'; rejectBtn.className='ask-btn reject'; rejectBtn.textContent='Отклонить';
+  const acceptBtn=document.createElement('button'); acceptBtn.type='button'; acceptBtn.className='ask-btn accept'; acceptBtn.textContent='Продолжить'; acceptBtn.disabled=true;
+  function submit(answer,note){
+    clearInterval(tick);
+    wsSend({type:'confirm_answer',ask_id:id,answer:String(answer||'')});
+    card.classList.add('ask-resolved');
+    const n=card.querySelector('.ask-done-note'); if(n) n.textContent=note;
+  }
+  function doAccept(){
+    const answer=(otherInput.value.trim())||(chosen)||(opts[0]||'');
+    if(!answer) return;
+    submit(answer,'Ответ отправлен: «'+answer+'»');
+  }
+  acceptBtn.addEventListener('click',doAccept);
+  rejectBtn.addEventListener('click',()=>submit('','Отклонено — модель продолжит сама'));
+  actions.appendChild(rejectBtn); actions.appendChild(acceptBtn);
+  const note=document.createElement('div'); note.className='ask-done-note';
+  card.appendChild(title); card.appendChild(timer); card.appendChild(box); card.appendChild(otherRow); card.appendChild(actions); card.appendChild(note);
+  host.appendChild(card); scrollDown(true);
+  let left=30;
+  const tick=setInterval(()=>{
+    left--;
+    if(left<=0){clearInterval(tick);if(!card.classList.contains('ask-resolved')){card.classList.add('ask-resolved');note.textContent='Время вышло — модель продолжит сама';}return;}
+    timer.textContent=String(left);
+    if(left<=10) timer.classList.add('low');
+  },1000);
 }
 function finishTurn(){
   busy=false;
@@ -1828,6 +1944,7 @@ function onMsg(d){
     case 'workdir': workdir=d.path; renderWd(); closeFp(); toast('Рабочая папка: '+d.path); break;
     case 'model': syncModelUI({model:d.model}); break;
     case 'toast': toast(d.text); if(d.unlock){busy=false;setBusyUI();} break;
+    case 'ask_answered': if(!d.ok) closeAskLocally(d.ask_id,'Вопрос уже закрыт'); break;
     default: onEvent(d);
   }
 }
@@ -2027,14 +2144,12 @@ try{
   renderEmpty(); renderChats(); setEffortControl(effort||'normal');
   window.addEventListener('resize',()=>paintEffort(effortIndex(effort||'normal')));
   connect(); autosize(); updateSend();
-  console.log('[Agent UI] init done', { chats: (chats||[]).length, chatsLoaded: chatsLoaded });
+console.log('[Agent UI] init done', { chats: (chats||[]).length, chatsLoaded: chatsLoaded });
 }catch(err){
   console.error('[Agent UI] init failed', err);
 }
-})();
-</script>
 
-(function initSideBrowser(){
+function initSideBrowser(){
   const app=document.querySelector('.app');
   const panel=document.getElementById('browserPanel');
   const toggle=document.getElementById('browserToggle');
@@ -2049,14 +2164,18 @@ try{
   function show(){panel.hidden=false;app.classList.add('browser-open');toggle.setAttribute('aria-expanded','true');toggle.title='Скрыть браузер';toggle.style.color='var(--fg)';if(frame.src==='about:blank'&&!input.value.trim())input.value='https://www.google.com';}
   function conceal(){panel.hidden=true;app.classList.remove('browser-open');toggle.setAttribute('aria-expanded','false');toggle.title='Открыть браузер';toggle.style.color='';}
   function navigate(raw,record){let value=(raw||'').trim();if(!value)return;if(!/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(value)){value=value.includes('.')&&!value.includes(' ')?'https://'+value:'https://www.google.com/search?q='+encodeURIComponent(value);}try{const u=new URL(value);if(!['http:','https:'].includes(u.protocol)){status.textContent='Поддерживаются только HTTP и HTTPS';return;}value=u.href;}catch(e){status.textContent='Некорректный адрес';return;}input.value=value;show();status.textContent='Загрузка страницы…';note.hidden=false;try{frame.src=value;}catch(e){status.textContent='Не удалось открыть страницу';}if(record!==false){historyList=historyList.slice(0,historyIndex+1);historyList.push(value);historyIndex=historyList.length-1;}}
-  toggle.addEventListener('click',()=>panel.hidden?show():conceal());hide.addEventListener('click',conceal);
-  form.addEventListener('submit',e=>{e.preventDefault();navigate(input.value,true);});
+  toggle.addEventListener('click',()=>panel.hidden?show():conceal());
+  hide?.addEventListener('click',conceal);
+  form?.addEventListener('submit',e=>{e.preventDefault();navigate(input.value,true);});
   document.getElementById('browserBack')?.addEventListener('click',()=>{if(historyIndex>0){historyIndex--;navigate(historyList[historyIndex],false);}});
   document.getElementById('browserForward')?.addEventListener('click',()=>{if(historyIndex<historyList.length-1){historyIndex++;navigate(historyList[historyIndex],false);}});
   document.getElementById('browserReload')?.addEventListener('click',()=>{try{frame.contentWindow.location.reload();status.textContent='Обновление…';}catch(e){navigate(input.value,false);}});
   frame.addEventListener('load',()=>{if(frame.src!=='about:blank'){status.textContent='Страница загружена';note.hidden=true;}});
   frame.addEventListener('error',()=>{status.textContent='Страница недоступна';note.hidden=false;});
+}
+initSideBrowser();
 })();
+</script>
 
 </body>
 </html>
