@@ -784,6 +784,30 @@ textarea#input::placeholder{color:var(--dim)}
     <button type="button" class="icon-x" id="settingsClose" aria-label="Закрыть">×</button>
   </div>
 
+  <div class="s-group">
+    <div class="s-group-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M1 12h2M21 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/></svg>Провайдер API</div>
+    <label class="s-label" for="providerSelect">Провайдер</label>
+    <select class="s-input" id="providerSelect"></select>
+    <label class="s-label" for="apiUrlInput">API URL</label>
+    <input class="s-input" id="apiUrlInput" spellcheck="false" autocomplete="off" placeholder="https://api.openai.com/v1 или http://127.0.0.1:1234/v1">
+    <label class="s-label" for="apiKeyInput">API-ключ</label>
+    <input class="s-input" id="apiKeyInput" type="password" spellcheck="false" autocomplete="new-password" placeholder="sk-…">
+    <label class="s-clear-key"><input type="checkbox" id="clearApiKey"> Удалить сохранённый ключ</label>
+    <div class="s-hint" id="apiKeyHint"></div>
+    <button type="button" class="s-save" id="apiSaveBtn">Сохранить API</button>
+  </div>
+
+  <div class="s-group">
+    <div class="s-group-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg>Рабочая папка</div>
+    <label class="s-label" for="wdInput">Путь к папке проекта</label>
+    <div class="s-row">
+      <input class="s-input" id="wdInput" spellcheck="false" autocomplete="off" placeholder="/path/to/project" style="flex:1">
+      <button type="button" class="s-mini" id="wdBrowseBtn" title="Обзор папок">↑</button>
+    </div>
+    <button type="button" class="s-save secondary" id="wdSaveBtn">Применить папку</button>
+  </div>
+</div>
+
 <div class="modal" id="fp" hidden>
   <div class="fp glass">
     <div class="fp-h"><b>Рабочая папка</b><button class="x" id="fpx" type="button">×</button></div>
@@ -842,7 +866,7 @@ const IMG_RE=/\.(png|jpe?g|gif|webp|svg|bmp)$/i;
 const EMPTY_HTML='<div class="big" aria-hidden="true"></div>'
  +'<div class="eyebrow">AI WORKSPACE</div>'
  +'<h1>Готов к работе</h1>'
- +'<p>Опишите задачу в поле ниже. Я помогу с кодом, файлами, анализом и автоматизацией.</p>'
+ +'<p>Опишите задачу в поле ниже. Я помогу с кодом, файлами, анализом и автоматизацией.</p>';
 
 let ws=null, busy=false, think=false, wantThink=false, replaying=false;
 let effort=(function(){try{return localStorage.getItem("effort")||"normal";}catch(e){return "normal";}})();
@@ -1459,8 +1483,8 @@ function onEvent(e){
     case 'context':
       if(e.info) setContextUI(e.info);
       break;
-    case 'checklist': renderChecklist(e.items||[]); break;
-    case 'ask': renderAskCard(e.info||{}); break;
+    case 'checklist': if(!replaying) renderChecklist(e.items||[]); break;
+    case 'ask': if(!replaying) renderAskCard(e.info||{}); break;
     case 'followups': pendingFollowups=(e.options||[]).slice(0,4); break;
     case 'done': finishTurn(); break;
   }
