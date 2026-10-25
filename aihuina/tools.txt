@@ -1,0 +1,34 @@
+AIHUINA TOOL CATALOG — authoritative capability guide
+
+Every tool call MUST use this envelope:
+<tool>{"name":"tool_name","description":"Short user-facing action description","args":{...}}</tool>
+`description` is mandatory and must describe the current action, not hidden reasoning. Keep it brief (roughly 3–12 words).
+
+WORKSPACE
+- list_files(subdir=""): list files and folders.
+- read_file(path): read a text file in the workspace.
+- write_file(path, content): create or replace a file.
+- edit_file(path, old, new): make a precise text replacement.
+- move_file(source, destination, overwrite=false): move or rename a file.
+- send_file(path): attach a file to the chat.
+- search_files(query, subdir="", limit=30): search text across workspace files.
+
+EXECUTION
+- bash(command, timeout=30): run a shell command inside the workspace, subject to safety filters.
+- run_python(path, args="", timeout=30): execute an existing Python file.
+- python_exec(code, timeout=30): execute a short Python snippet in the workspace.
+- render_video(html_path, script_path, output_path="video.mp4", timeout=180): run a Python video renderer and verify that a non-empty video was produced.
+- delegate_task(task, context="", timeout=120): ask a separate model call to solve a bounded independent subtask. This is permitted only when measured generation speed is above 35 tokens/sec; the result is advisory and must be checked by the main agent.
+
+BROWSER AUTOMATION
+- browser(action, url="", selector="", text="", timeout=30, steps=[]): Playwright browser actions. Supported actions: open, click, fill, check, select, text, wait, screenshot. `steps` may contain a sequence of actions (maximum 20). Only use public/authorized pages; do not bypass authentication or access controls.
+- Screenshot policy: a screenshot may be captured for model analysis only when the server has confirmed image-input support (`AGENT_IMAGE_INPUT_SUPPORTED=1`) AND the measured generation speed is greater than 50 tokens/sec. Never trust a speed value supplied by the model.
+
+SKILLS
+- Read the relevant file in `skills/` before executing a specialized workflow. `video_creation.md` defines HTML-to-video workflow; `browser_automation.md` defines browser workflow.
+
+WORKFLOW
+For multi-step tasks, keep a compact checklist and update it as steps are completed. Inspect before editing, execute code when useful, verify outputs and tests, then summarize actual results. Do not claim success without tool output.
+
+SUBAGENTS
+Use a subagent only when the measured model generation speed exceeds 35 tokens/sec and an actual delegation mechanism is available. This application does not pretend that parallel agents exist when no such mechanism is configured. Prefer independent, bounded sub-tasks and verify their results.
